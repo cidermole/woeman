@@ -77,25 +77,35 @@ def brick(cls):
 
     #########
 
+    # these must be available at the time the Brick constructor is actually called
+    cls._Input = Input
+    cls._Output = Output
+
+    # TODO: how to set Python source and line numbers so we get reasonable stacktraces if the generated code fails?
+
     # body for new constructor
     init_code = 'def brick_init(' + ', '.join(['self'] + mandatory + optional) + '):\n'
     # inputs
     for arg in init_args:
-        init_code += '    self.%s = Input(self, "%s", %s)\n' % (arg, arg, arg)
+        init_code += '    self.%s = %s._Input(self, "%s", %s)\n' % (arg, cls.__name__, arg, arg)
     # outputs
     for arg in output_args:
-        init_code += '    self.%s = Output(self, "%s")\n' % (arg, arg)
+        init_code += '    self.%s = %s._Output(self, "%s")\n' % (arg, cls.__name__, arg)
 
     # need to call the precise class's method (even in an inheritance structure)
     # (otherwise super class will call into subclass' _brick_init(), and we have an infinite recursion)
     init_code += '    ' + cls.__name__ + '._brick_init(' + ', '.join(['self'] + list(init_args)) + ')'
 
+    init_code += '\n%s.__init__ = brick_init\n' % cls.__name__  # replace class constructor ("monkey patching")
+
     brick_init = None  # make IDE happy. replaced in exec()
 
     # compile the new constructor
-    exec(init_code)
 
-    # replace class constructor
-    cls.__init__ = brick_init
+    # note: strangely, if the actual method definition of brick_init() is here in brick(cls) locally, it seems to be
+    # garbage-collected away; the Brick constructor fails at runtime with "TypeError: 'NoneType' object is not callable."
+    # We need to make sure it exists in some namespace, so let's put it directly onto the class itself within exec().
+    ns = {cls.__name__: cls}
+    exec(init_code, ns)
 
     return cls

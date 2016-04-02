@@ -1,5 +1,5 @@
 import unittest
-from woeman import brick, BrickConfigError
+from woeman import brick, BrickConfigError, Output
 
 
 class BasicTests(unittest.TestCase):
@@ -12,10 +12,13 @@ class BasicTests(unittest.TestCase):
                     pass
 
     def testBrickDefinition(self):
-        """Define the simplest possible valid Brick."""
+        """Define the simplest possible valid Brick, and make sure its constructor runs."""
         @brick
         class Experiment:
             def __init__(self):
                 pass
             def output(self, result):
                 pass
+
+        e = Experiment()
+        self.assertTrue(isinstance(e.result, Output))
