@@ -28,6 +28,12 @@ class Output:
         return 'Output(%s, %s)' % (self.brick.__class__, self.name)
 
 
+class BrickConfigError(TypeError):
+    """Raised for a Brick class with invalid configuration."""
+    def __init__(self, *args, **kwargs):
+        TypeError.__init__(self, *args, **kwargs)
+
+
 def brick(cls):
     """
     Decorator for Brick classes. Wraps the constructor and sets a number of useful properties:
@@ -36,11 +42,11 @@ def brick(cls):
     :param cls: Brick class definition
     """
 
-    brick_ident = 'Brick %s [%s:%d]' % (cls.__name__, inspect.getsourcefile(cls), inspect.getsourcelines(cls)[1])
+    brick_ident = 'Brick %s in File "%s", line %d' % (cls.__name__, inspect.getsourcefile(cls), inspect.getsourcelines(cls)[1])
 
     # constructor arguments define Brick inputs
     if not '__init__' in dir(cls):
-        raise TypeError('%s is missing mandatory __init__() which defines its inputs' % brick_ident)
+        raise BrickConfigError('missing mandatory __init__() which defines its inputs in %s' % brick_ident)
     input_func = cls.__init__
     cls._brick_init = input_func  # back up to call it later
 
@@ -60,13 +66,13 @@ def brick(cls):
 
     # arguments of output() define Brick outputs
     if not 'output' in dir(cls):
-        raise TypeError('%s is missing mandatory output() which defines its outputs' % brick_ident)
+        raise BrickConfigError('missing mandatory output() which defines Brick outputs in %s' % brick_ident)
     output_func = cls.output
 
     # output argument names, in order
     output_args = output_func.__code__.co_varnames[1:output_func.__code__.co_argcount]  # except 'self'
     if len(output_args) == 0:
-        raise TypeError('%s needs at least one output' % brick_ident)
+        raise BrickConfigError('need at least one output in %s' % brick_ident)
     cls._brick_output = output_args
 
     #########
