@@ -92,18 +92,4 @@ def brick(cls):
     # replace class constructor
     cls.__init__ = brick_init
 
-    ######
-
-    # body for output() configuration handler (called from __init__())
-    output_code = 'def brick_output(self, ' + ', '.join(output_args) + '):\n'
-    output_code += '    pass'
-
-    brick_output = None  # make IDE happy. replaced in exec()
-
-    # compile new output wrapper
-    exec(output_code)
-
-    # replace output()
-    cls.output = brick_output
-
     return cls
