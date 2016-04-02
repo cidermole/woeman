@@ -1,9 +1,27 @@
 import inspect
 
 
+class Input:
+    """Denotes that a Brick class member is an input."""
+    def __init__(self, brick, name, ref):
+        """
+        :param brick: the object this Input belongs to
+        :param name:  Input name
+        :param ref:   the Output which this Input references
+        """
+        self.brick, self.name, self.ref = brick, name, ref
+
+    def __repr__(self):
+        return 'Input(%s, %s, %s)' % (self.brick.__class__, self.name, self.ref)
+
+
 class Output:
     """Denotes that a Brick class member is an output."""
     def __init__(self, brick, name):
+        """
+        :param brick: the object this Input belongs to
+        :param name:  Input name
+        """
         self.brick, self.name = brick, name
 
     def __repr__(self):
@@ -55,23 +73,18 @@ def brick(cls):
 
     # body for new constructor
     init_code = 'def brick_init(' + ', '.join(['self'] + mandatory + optional) + '):\n'
-    # for consistency of self.parts before and after super constructor call in subclasses:
-    init_code += '    self.parts = Parts() if not hasattr(self, "parts") else self.parts\n'
     # inputs
     for arg in init_args:
-        init_code += '    print("%s = %%s" %% %s)\n' % (arg, arg)
+        init_code += '    self.%s = Input(self, "%s", %s)\n' % (arg, arg, arg)
     # outputs
-    init_code += '    self.o = Outputs()\n'
     for arg in output_args:
-        init_code += '    self.o.%s = Output(self, "%s")\n' % (arg, arg)
+        init_code += '    self.%s = Output(self, "%s")\n' % (arg, arg)
 
     # need to call the precise class's method (even in an inheritance structure)
     # (otherwise super class will call into subclass' _brick_init(), and we have an infinite recursion)
     init_code += '    ' + cls.__name__ + '._brick_init(' + ', '.join(['self'] + list(init_args)) + ')'
 
-    #print(init_code)
-
-    brick_init = None  # make IDE happy. replaced in exec().
+    brick_init = None  # make IDE happy. replaced in exec()
 
     # compile the new constructor
     exec(init_code)
@@ -81,12 +94,9 @@ def brick(cls):
 
     ######
 
-    # body for output configuration handler (called from __init__())
+    # body for output() configuration handler (called from __init__())
     output_code = 'def brick_output(self, ' + ', '.join(output_args) + '):\n'
-    for arg in output_args:
-        output_code += '    print("%s = %%s" %% %s)\n' % (arg, arg)
-
-    #print(output_code)
+    output_code += '    pass'
 
     brick_output = None  # make IDE happy. replaced in exec()
 
