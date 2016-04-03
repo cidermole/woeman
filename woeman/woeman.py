@@ -21,7 +21,8 @@ class Brick:
         # obtain variables in the (Brick constructor) caller's frame, to get 'self' which is our parent
         # call stack: <call_site> -> BrickClass.__init__() -> _brick_setup_before_init() -> obtain_caller_local_var()
         parent = obtain_caller_local_var('self', depth=3)
-        if parent is not None and isinstance(parent, Brick):
+        if parent is not None and isinstance(parent, Brick) \
+                and parent != self:  # this is unwanted in an inheritance scenario when calling the base constructor
             # Brick is part of another Brick (was defined in a Brick constructor [currently, in any Brick method.])
             self.parent = parent
             self.parent._brick_parts.append(self)
