@@ -1,4 +1,6 @@
 import inspect
+import collections
+import os
 
 
 class Brick:
@@ -12,6 +14,7 @@ class Brick:
     def __init__(self):
         # this runs on instances, i.e. later than BrickDecorator.create() which runs on class definitions
         self._brick_parts = []      # list of parts (children) in definition order
+        self._brick_path = None     # filesystem path to Brick directory
 
     def _brick_setup_pre_init(self):
         """
@@ -43,6 +46,41 @@ class Brick:
         """Parameters of the override of this method define Brick outputs. This method may bind() outputs to parts."""
         pass
 
+    def _get_part_name(self, part):
+        """Find the attribute name that holds a reference to this part. May be contained in a list or dict attribute."""
+        for attr_name in dir(self):
+            if attr_name.startswith('__') or attr_name == '_brick_parts':
+                continue
+            attr = self.__getattribute__(attr_name)
+            if isinstance(attr, Brick) and attr == part:
+                # straight attribute name match (e.g. "part" for self.part = Part() in __init__())
+                return attr_name
+            elif isinstance(attr, collections.Iterable) and len(attr) > 0:
+                # check list/dict (e.g. self.parts[0] = Part() in __init__())
+                if isinstance(attr, list) and isinstance(attr[0], Brick):
+                    # a list of Bricks, peek inside
+                    for i, p in enumerate(attr):
+                        if p == part:
+                            return '%s_%d' % (attr_name, i)  # e.g. "parts_0"
+                elif isinstance(attr, dict):
+                    # a dict (maybe) containing Bricks, peek inside
+                    for i, p in attr.items():
+                        if not isinstance(p, Brick):  # make sure we have a dict of Bricks
+                            break
+                        if p == part:
+                            return '%s_%s' % (attr_name, i)  # e.g. "parts_zero" for self.parts['zero'] = Part()
+        raise BrickConfigError('Could not determine part name of part %s in %s' % (part.__class__.__name__, brick_ident(self.__class__)))
+
+    def setPath(self, path):
+        """Set filesystem path where this Brick will be executed."""
+        # since there may be several parts of the same Brick type, the caller should set the Brick name.
+        self._brick_path = path
+        for part in self._brick_parts:
+            part.setPath(os.path.join(self._brick_path, self._get_part_name(part)))
+
+    def setBasePath(self, basePath):
+        """Set filesystem path above this Brick. Appends Brick name. Use only for top level Brick / Experiment."""
+        self.setPath(os.path.join(basePath, self.__class__.__name__))
 
 
 class Input:

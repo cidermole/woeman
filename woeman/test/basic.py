@@ -108,3 +108,29 @@ class BasicTests(unittest.TestCase):
         e = Experiment()
         self.assertTrue(e.e_ran)
         self.assertTrue(e.b_ran)
+
+    def testBrickPaths(self):
+        """Specify filesystem path."""
+        @brick
+        class Part:
+            def __init__(self):
+                self.p_ran = True
+            def output(self, result):
+                pass
+
+        @brick
+        class Experiment:
+            def __init__(self):
+                self.e_ran = True
+                self.part = Part()
+                self.parts = [Part()]
+                self.mapped = {'zero': Part()}
+            def output(self, result):
+                result.bind(self.part.result)
+
+        e = Experiment()
+        e.setBasePath('/testpath')
+        self.assertEqual(e._brick_path, '/testpath/Experiment')
+        self.assertEqual(e.part._brick_path, '/testpath/Experiment/part')
+        self.assertEqual(e.parts[0]._brick_path, '/testpath/Experiment/parts_0')
+        self.assertEqual(e.mapped['zero']._brick_path, '/testpath/Experiment/mapped_zero')
