@@ -1,6 +1,8 @@
 # TODO: set up a setup.py this way:
 # https://jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/
 
+# TODO: nosetest
+
 from setuptools import setup
 
 # https://chriswarrick.com/blog/2014/09/15/python-apps-the-right-way-entry_points-and-scripts/
