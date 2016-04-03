@@ -4,7 +4,7 @@ import os
 
 
 class Brick:
-    """Implicit base class for all Bricks, monkey-patched in."""
+    """Implicit base class for all Bricks, monkey-patched in as a base class by the @brick decorator."""
 
     # these are set from BrickDecorator.patchFields()
     _brick_init = None     # original __init__() of Brick
@@ -84,7 +84,7 @@ class Brick:
 
 
 class Input:
-    """Denotes that a Brick class member is an input."""
+    """For Brick attributes representing an input."""
     def __init__(self, brick, name, ref):
         """
         :param brick: the object this Input belongs to
@@ -98,7 +98,7 @@ class Input:
 
 
 class Output:
-    """Denotes that a Brick class member is an output."""
+    """For Brick attributes representing an output."""
     def __init__(self, brick, name):
         """
         :param brick: the object this Input belongs to
@@ -219,16 +219,7 @@ class BrickDecorator:
 
     def patchClass(self):
         """Append Brick as a base class."""
-
-        # exclude 'object' as a base, which should always come first, and which causes an error:
-        # TypeError: Cannot create a consistent method resolution order (MRO) for bases object, ...
-        #self.cls = self.cls.__class__(self.cls.__name__, self.cls.__class__.__bases__[1:] + (Brick,), {})
-        # (self.cls,) + self.cls.__class__.__bases__[1:] + (Brick,)
-
-        #import sys
-        #sys.stderr.write('bases[1] = %s\n' % str(self.cls.__class__.__bases__[1]))
-
-        #self.cls = self.cls.__class__(self.cls.__name__, (self.cls,) + (Brick,), {})
+        # exclude 'object' as a base, which should always come first in __bases__
         self.cls = self.cls.__class__(self.cls.__name__, (self.cls,) + self.cls.__class__.__bases__[1:] + (Brick,), {})
 
 
