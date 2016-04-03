@@ -40,7 +40,7 @@ class BasicTests(unittest.TestCase):
                 self.i_ran = True
                 self.part = Part()
             def output(self, result):
-                pass
+                result.bind(self.part.result)
 
         e = Experiment()
         self.assertTrue(isinstance(e.result, Output))
@@ -48,3 +48,4 @@ class BasicTests(unittest.TestCase):
         self.assertTrue(e.part.p_ran)
         self.assertTrue(e.parent is None)
         self.assertTrue(e.part.parent == e)
+        self.assertTrue(e.result.ref == e.part.result)

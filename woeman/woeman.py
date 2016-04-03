@@ -4,13 +4,19 @@ import inspect
 class Brick:
     """Implicit base class for all Bricks, monkey-patched in."""
     # note: currently does not include monkey-patched attributes here, but we could mention them for doc purposes.
-    def brick_setup(self):
+
+    def __init__(self):
+        self._brick_init = None     # original __init__() of Brick
+        self._brick_inputs = None   # list of input names
+        self._brick_outputs = None  # list of output names
+
+    def _brick_setup_pre_init(self):
         """
         Find the parent Brick instance (if present) that this Brick instance is attached to, set paths, ...
-        Part of the Brick constructor code that is monkey-patched in.
+        Part of the Brick constructor code that is monkey-patched in. Called prior to the actual Brick constructor.
         """
         # obtain variables in the (Brick constructor) caller's frame, to get 'self' which is our parent
-        # call stack: <call_site> -> BrickClass.__init__() -> brick_setup() -> obtain_caller_local_var()
+        # call stack: <call_site> -> BrickClass.__init__() -> _brick_setup_before_init() -> obtain_caller_local_var()
         parent = obtain_caller_local_var('self', depth=3)
         if parent is not None and isinstance(parent, Brick):
             # Brick is part of another Brick (was defined in a Brick constructor [currently, in any Brick method.])
@@ -18,6 +24,19 @@ class Brick:
         else:
             # top-level Brick, i.e. Experiment
             self.parent = None
+
+    def _brick_setup_post_init(self):
+        """
+        Late setup that needs to access stuff set up in Brick constructor (like parts).
+        """
+        self._bind_outputs()
+
+    def _bind_outputs(self):
+        self.output(*[self.__getattribute__(output_name) for output_name in self._brick_outputs])
+
+    def output(self, *args):
+        """Parameters of the override of this method define Brick outputs. This method may bind() outputs to parts."""
+        pass
 
 
 
@@ -43,9 +62,19 @@ class Output:
         :param name:  Input name
         """
         self.brick, self.name = brick, name
+        self.ref = None
+
+    def bind(self, ref):
+        """Bind this Output to a part Brick's Output."""
+        if ref.brick.parent != self.brick:
+            raise BrickConfigError('Output.bind() must be given a part Brick in %s' % brick_ident(self.brick.__class__))
+        self.ref = ref
 
     def __repr__(self):
-        return 'Output(%s, %s)' % (self.brick.__class__, self.name)
+        if self.ref is None:
+            return 'Output(%s, %s)' % (self.brick.__class__, self.name)
+        else:
+            return 'Output(%s, %s, %s)' % (self.brick.__class__, self.name, self.ref)
 
 
 class BrickConfigError(TypeError):
@@ -58,7 +87,7 @@ class BrickDecorator:
     """Factory for Brick classes (not instances), used by @brick decorator."""
     def __init__(self, cls):
         self.cls = cls
-        self.brick_ident = 'Brick %s in file "%s", line %d' % (cls.__name__, inspect.getsourcefile(cls), inspect.getsourcelines(cls)[1])
+        self.brick_ident = brick_ident(cls)
         self.init_args_mandatory = []
         self.init_args_optional = []
         self.inputs = []
@@ -102,7 +131,7 @@ class BrickDecorator:
         # output argument names, in order
         output_args = output_func.__code__.co_varnames[1:output_func.__code__.co_argcount]  # except 'self'
         if len(output_args) == 0:
-            raise BrickConfigError('need at least one output in %s' % self.brick_ident)
+            raise BrickConfigError('need to override output() with at least one argument in %s' % self.brick_ident)
         self.outputs = output_args
 
     def patchConstructor(self):
@@ -125,13 +154,15 @@ class BrickDecorator:
         for arg in self.outputs:
             init_code += '    self.%s = %s._Output(self, "%s")\n' % (arg, cls.__name__, arg)
 
-        init_code += '    self.brick_setup()\n'
+        init_code += '    self._brick_setup_pre_init()\n'
 
         # need to call the precise class's method (even in an inheritance structure)
         # (otherwise super class will call into subclass' _brick_init(), and we have an infinite recursion)
-        init_code += '    ' + cls.__name__ + '._brick_init(' + ', '.join(['self'] + list(self.inputs)) + ')'
+        init_code += '    ' + cls.__name__ + '._brick_init(' + ', '.join(['self'] + list(self.inputs)) + ')\n'
 
-        init_code += '\n%s.__init__ = brick_init\n' % cls.__name__  # replace class constructor ("monkey patching")
+        init_code += '    self._brick_setup_post_init()\n'
+
+        init_code += '%s.__init__ = brick_init\n' % cls.__name__  # replace class constructor ("monkey patching")
 
         ns = {cls.__name__: cls}
         exec(init_code, ns)
@@ -171,3 +202,6 @@ def obtain_caller_local_var(key, depth=3):
         return f.f_locals[key] if key in f.f_locals else None
     finally:
         del frame
+
+def brick_ident(cls):
+    return 'Brick %s in file "%s", line %d' % (cls.__name__, inspect.getsourcefile(cls), inspect.getsourcelines(cls)[1])
