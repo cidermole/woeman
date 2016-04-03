@@ -3,12 +3,15 @@ import inspect
 
 class Brick:
     """Implicit base class for all Bricks, monkey-patched in."""
-    # note: currently does not include monkey-patched attributes here, but we could mention them for doc purposes.
+
+    # these are set from BrickDecorator.patchFields()
+    _brick_init = None     # original __init__() of Brick
+    _brick_inputs = None   # list of input names
+    _brick_outputs = None  # list of output names
 
     def __init__(self):
-        self._brick_init = None     # original __init__() of Brick
-        self._brick_inputs = None   # list of input names
-        self._brick_outputs = None  # list of output names
+        # this runs on instances, i.e. later than BrickDecorator.create() which runs on class definitions
+        self._brick_parts = []      # list of parts (children) in definition order
 
     def _brick_setup_pre_init(self):
         """
@@ -21,6 +24,7 @@ class Brick:
         if parent is not None and isinstance(parent, Brick):
             # Brick is part of another Brick (was defined in a Brick constructor [currently, in any Brick method.])
             self.parent = parent
+            self.parent._brick_parts.append(self)
         else:
             # top-level Brick, i.e. Experiment
             self.parent = None
@@ -141,12 +145,14 @@ class BrickDecorator:
         # TODO: how to set Python source and line numbers so we get reasonable stacktraces if the generated code fails?
 
         # these must be available at the time the Brick constructor is actually called
+        cls._Brick = Brick
         cls._Input = Input
         cls._Output = Output
         cls._brick_init = cls.__init__  # to call the original __init__() later
 
         # body for new constructor
         init_code = 'def brick_init(' + ', '.join(['self'] + self.init_args_mandatory + self.init_args_optional) + '):\n'
+        init_code += '    %s._Brick.__init__(self)\n' % (cls.__name__)
         # inputs
         for arg in self.inputs:
             init_code += '    self.%s = %s._Input(self, "%s", %s)\n' % (arg, cls.__name__, arg, arg)

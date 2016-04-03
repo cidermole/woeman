@@ -49,3 +49,4 @@ class BasicTests(unittest.TestCase):
         self.assertTrue(e.parent is None)
         self.assertTrue(e.part.parent == e)
         self.assertTrue(e.result.ref == e.part.result)
+        self.assertTrue(e._brick_parts[0] == e.part)
