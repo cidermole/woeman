@@ -4,7 +4,21 @@ import inspect
 class Brick:
     """Implicit base class for all Bricks, monkey-patched in."""
     # note: currently does not include monkey-patched attributes here, but we could mention them for doc purposes.
-    pass
+    def brick_setup(self):
+        """
+        Find the parent Brick instance (if present) that this Brick instance is attached to, set paths, ...
+        Part of the Brick constructor code that is monkey-patched in.
+        """
+        # obtain variables in the (Brick constructor) caller's frame, to get 'self' which is our parent
+        # call stack: <call_site> -> BrickClass.__init__() -> brick_setup() -> obtain_caller_local_var()
+        parent = obtain_caller_local_var('self', depth=3)
+        if parent is not None and isinstance(parent, Brick):
+            # Brick is part of another Brick (was defined in a Brick constructor [currently, in any Brick method.])
+            self.parent = parent
+        else:
+            # top-level Brick, i.e. Experiment
+            self.parent = None
+
 
 
 class Input:
@@ -101,7 +115,6 @@ class BrickDecorator:
         cls._Input = Input
         cls._Output = Output
         cls._brick_init = cls.__init__  # to call the original __init__() later
-        cls._brick_setup = brick_setup
 
         # body for new constructor
         init_code = 'def brick_init(' + ', '.join(['self'] + self.init_args_mandatory + self.init_args_optional) + '):\n'
@@ -112,7 +125,7 @@ class BrickDecorator:
         for arg in self.outputs:
             init_code += '    self.%s = %s._Output(self, "%s")\n' % (arg, cls.__name__, arg)
 
-        init_code += '    self._brick_setup()\n'
+        init_code += '    self.brick_setup()\n'
 
         # need to call the precise class's method (even in an inheritance structure)
         # (otherwise super class will call into subclass' _brick_init(), and we have an infinite recursion)
@@ -158,19 +171,3 @@ def obtain_caller_local_var(key, depth=3):
         return f.f_locals[key] if key in f.f_locals else None
     finally:
         del frame
-
-
-def brick_setup(self):
-    """
-    Find the parent Brick instance (if present) that this Brick instance is attached to, set paths, ...
-    Part of the Brick constructor code that is monkey-patched in.
-    """
-    # obtain variables in the (Brick constructor) caller's frame, to get 'self' which is our parent
-    # call stack: <call_site> -> BrickClass.__init__() -> brick_setup() -> obtain_caller_local_var()
-    parent = obtain_caller_local_var('self', depth=3)
-    if parent is not None and isinstance(parent, Brick):
-        # Brick is part of another Brick (was defined in a Brick constructor [currently, in any Brick method.])
-        self.parent = parent
-    else:
-        # top-level Brick, i.e. Experiment
-        self.parent = None
