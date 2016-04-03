@@ -16,9 +16,35 @@ class BasicTests(unittest.TestCase):
         @brick
         class Experiment:
             def __init__(self):
-                pass
+                self.i_ran = True
             def output(self, result):
                 pass
 
         e = Experiment()
         self.assertTrue(isinstance(e.result, Output))
+        self.assertTrue(e.i_ran)
+        self.assertTrue(e.parent is None)
+
+    def testBrickParts(self):
+        """Define the simplest possible valid Brick with parts, and make sure constructors run."""
+        @brick
+        class Part:
+            def __init__(self):
+                self.p_ran = True
+            def output(self, result):
+                pass
+
+        @brick
+        class Experiment:
+            def __init__(self):
+                self.i_ran = True
+                self.part = Part()
+            def output(self, result):
+                pass
+
+        e = Experiment()
+        self.assertTrue(isinstance(e.result, Output))
+        self.assertTrue(e.i_ran)
+        self.assertTrue(e.part.p_ran)
+        self.assertTrue(e.parent is None)
+        self.assertTrue(e.part.parent == e)
