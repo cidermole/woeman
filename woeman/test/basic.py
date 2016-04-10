@@ -1,5 +1,5 @@
 import unittest
-from woeman import brick, BrickConfigError, Output
+from woeman import brick, Brick, BrickConfigError, Output
 
 
 class BasicTests(unittest.TestCase):
@@ -110,7 +110,7 @@ class BasicTests(unittest.TestCase):
         self.assertTrue(e.b_ran)
 
     def testBrickPaths(self):
-        """Specify filesystem path."""
+        """Test the mapping of Brick parts to filesystem paths."""
         @brick
         class Part:
             def __init__(self):
@@ -118,9 +118,14 @@ class BasicTests(unittest.TestCase):
             def output(self, result):
                 pass
 
+        # optionally, we can specify the base class Brick as well, to make IDE happy.
         @brick
-        class Experiment:
+        class Experiment(Brick):
             def __init__(self):
+                # you do not need to call the base constructor here (it is called by __init__ wrapper),
+                # but we should tolerate it (makes IDE and idiomatic programmers happy)
+                Brick.__init__(self)
+
                 self.e_ran = True
                 self.part = Part()
                 self.parts = [Part()]

@@ -13,8 +13,12 @@ class Brick:
 
     def __init__(self):
         # this runs on instances, i.e. later than BrickDecorator.create() which runs on class definitions
-        self._brick_parts = []      # list of parts (children) in definition order
-        self._brick_path = None     # filesystem path to Brick directory
+        if '_brick_initialized' in dir(self):
+            # already initialized, when brick __init__ (unnecessarily) calls the super __init__ (us here) explicitly
+            return
+        self._brick_initialized = True
+        self._brick_parts = []          # list of parts (children) in definition order
+        self._brick_path = None         # filesystem path to Brick directory
 
     def _brick_setup_pre_init(self):
         """
@@ -79,7 +83,10 @@ class Brick:
             part.setPath(os.path.join(self._brick_path, self._get_part_name(part)))
 
     def setBasePath(self, basePath):
-        """Set filesystem path above this Brick. Appends Brick name. Use only for top level Brick / Experiment."""
+        """
+        Set filesystem path above this Brick. Appends brick class name to the given basePath.
+        Use only for top level Brick / Experiment.
+        """
         self.setPath(os.path.join(basePath, self.__class__.__name__))
 
 
@@ -219,8 +226,9 @@ class BrickDecorator:
 
     def patchClass(self):
         """Append Brick as a base class."""
-        # exclude 'object' as a base, which should always come first in __bases__
-        self.cls = self.cls.__class__(self.cls.__name__, (self.cls,) + self.cls.__class__.__bases__[1:] + (Brick,), {})
+        # [1:]: exclude 'object' as a base, which should always come first in __bases__
+        bases = tuple([base for base in self.cls.__class__.__bases__[1:] if base != Brick])
+        self.cls = self.cls.__class__(self.cls.__name__, (self.cls,) + bases + (Brick,), {})
 
 
 def brick(cls):
