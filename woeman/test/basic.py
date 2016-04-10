@@ -17,6 +17,7 @@ class BasicTests(unittest.TestCase):
         class Experiment:
             def __init__(self):
                 self.i_ran = True
+
             def output(self, result):
                 pass
 
@@ -31,6 +32,7 @@ class BasicTests(unittest.TestCase):
         class Part:
             def __init__(self):
                 self.p_ran = True
+
             def output(self, result):
                 pass
 
@@ -39,6 +41,7 @@ class BasicTests(unittest.TestCase):
             def __init__(self):
                 self.e_ran = True
                 self.part = Part()
+
             def output(self, result):
                 result.bind(self.part.result)
 
@@ -57,6 +60,7 @@ class BasicTests(unittest.TestCase):
         class Part:
             def __init__(self):
                 self.p_ran = True
+
             def output(self, result):
                 pass
 
@@ -65,6 +69,7 @@ class BasicTests(unittest.TestCase):
             def __init__(self):
                 self.b_ran = True
                 self.part = Part()
+
             def output(self, result):
                 result.bind(self.part.result)
 
@@ -73,6 +78,7 @@ class BasicTests(unittest.TestCase):
             def __init__(self):
                 Base.__init__(self)
                 self.e_ran = True
+
             def output(self, result):
                 # to get output bindings of base, we must either
                 # * omit def output() and inherit its implementation,
@@ -94,6 +100,7 @@ class BasicTests(unittest.TestCase):
         class Base:
             def __init__(self):
                 self.b_ran = True
+
             def output(self, result):
                 pass
 
@@ -102,6 +109,7 @@ class BasicTests(unittest.TestCase):
             def __init__(self):
                 Base.__init__(self)
                 self.e_ran = True
+
             def output(self, result):
                 pass
 
@@ -115,6 +123,7 @@ class BasicTests(unittest.TestCase):
         class Part:
             def __init__(self):
                 self.p_ran = True
+
             def output(self, result):
                 pass
 
@@ -130,6 +139,7 @@ class BasicTests(unittest.TestCase):
                 self.part = Part()
                 self.parts = [Part()]
                 self.mapped = {'zero': Part()}
+
             def output(self, result):
                 result.bind(self.part.result)
 
