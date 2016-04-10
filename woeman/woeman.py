@@ -263,7 +263,9 @@ class BrickDecorator:
 
         # need to call the precise class's method (even in an inheritance structure)
         # (otherwise super class will call into subclass' _brick_init(), and we have an infinite recursion)
-        init_code += '    ' + cls.__name__ + '._brick_init(' + ', '.join(['self'] + list(self.inputs)) + ')\n'
+        # pass the Input() wrapped args to the original __init__() - makes wiring through to parts easier
+        selfInputs = ['self.%s' % input_name for input_name in self.inputs]
+        init_code += '    ' + cls.__name__ + '._brick_init(' + ', '.join(['self'] + selfInputs) + ')\n'
 
         init_code += '    self._brick_setup_post_init()\n'
 

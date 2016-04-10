@@ -1,6 +1,6 @@
 import unittest
 from woeman.fs import FilesystemInterface
-from woeman import brick
+from woeman import brick, Input, Output
 import os
 
 
@@ -60,18 +60,26 @@ class FilesystemTests(unittest.TestCase):
 
     def testCreateInOuts(self):
         """Test creation of input/output directory structures and symlinks for Bricks and their parts."""
+
+        unitTest = self
+
         @brick
         class Part:
             def __init__(self, partInput):
-                self.p_ran = True
+                unitTest.assertTrue(isinstance(partInput, Input))
 
             def output(self, partResult):
-                pass
+                unitTest.assertTrue(isinstance(partResult, Output))
 
         @brick
         class Experiment:
             def __init__(self, experimentInput):
-                self.e_ran = True
+                """
+                Bricks idiomatically pass only their filesystem inputs as __init__() arguments.
+                The actual value of 'experimentInput' received in here is wrapped by the woeman.Input() class
+                """
+                unitTest.assertTrue(isinstance(experimentInput, Input))
+                unitTest.assertEquals(experimentInput.ref, '/data/input')
                 self.part = Part(experimentInput)
 
             def output(self, experimentResult):
