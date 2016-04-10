@@ -230,6 +230,11 @@ class BrickDecorator:
         bases = tuple([base for base in self.cls.__class__.__bases__[1:] if base != Brick])
         self.cls = self.cls.__class__(self.cls.__name__, (self.cls,) + bases + (Brick,), {})
 
+        # note: class hierarchy:
+        # Experiment[wrap] -> (Experiment[code], bases..., Brick)
+        #
+        # (this may not be ideal, especially if people derive Experiment[code] explicitly from Brick...)
+        # (also, it is currently difficult to get the super(Experiment, self) style __init__ and other calls right)
 
 def brick(cls):
     """Decorator for Brick class definitions."""

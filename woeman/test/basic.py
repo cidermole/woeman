@@ -76,14 +76,20 @@ class BasicTests(unittest.TestCase):
         @brick
         class Experiment(Base):
             def __init__(self):
-                super(Experiment, self).__init__()
+                # note: you CANNOT use a super constructor call as below:
+                # super(Experiment, self).__init__()
+                # (try to fix this via class hierarchy in BrickDecorator.patchClass() if you feel ambitious)
+                Base.__init__(self)
                 self.e_ran = True
 
             def output(self, result):
                 # to get output bindings of base, we must either
                 # * omit def output() and inherit its implementation,
                 # * or explicitly call super output():
-                super(Experiment, self).output(result)
+
+                # note: you CANNOT use super(Experiment, self) here - see explanation above at __init__.
+                # super(Experiment, self).output(result)
+                Base.output(self, result)
 
         e = Experiment()
         self.assertTrue(e.e_ran)
@@ -107,7 +113,7 @@ class BasicTests(unittest.TestCase):
         @brick
         class Experiment(Base):
             def __init__(self):
-                super(Experiment, self).__init__()
+                Base.__init__(self)
                 self.e_ran = True
 
             def output(self, result):
