@@ -76,14 +76,14 @@ class BasicTests(unittest.TestCase):
         @brick
         class Experiment(Base):
             def __init__(self):
-                Base.__init__(self)
+                super(Experiment, self).__init__()
                 self.e_ran = True
 
             def output(self, result):
                 # to get output bindings of base, we must either
                 # * omit def output() and inherit its implementation,
                 # * or explicitly call super output():
-                Base.output(self, result)
+                super(Experiment, self).output(result)
 
         e = Experiment()
         self.assertTrue(e.e_ran)
@@ -107,7 +107,7 @@ class BasicTests(unittest.TestCase):
         @brick
         class Experiment(Base):
             def __init__(self):
-                Base.__init__(self)
+                super(Experiment, self).__init__()
                 self.e_ran = True
 
             def output(self, result):
