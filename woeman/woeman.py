@@ -89,6 +89,20 @@ class Brick:
         """
         self.setPath(os.path.join(basePath, self.__class__.__name__))
 
+    def createInOuts(self, filesystem):
+        """
+        Recursively create directory structure and input/output symlinks for this brick and its parts.
+        Filesystem path must have been set with setPath() or setBasePath() before.
+        :param filesystem: an fs.FilesystemInterface object to abstract filesystem calls
+        """
+        # create directories and symlinks for inputs and outputs
+        for inout_name in self._brick_inputs + self._brick_outputs:
+            self.__getattribute__(inout_name).createSymlink(filesystem)
+
+        # recursively create for all parts
+        for part in self._brick_parts:
+            part.createInOuts(filesystem)
+
 
 class Input:
     """For Brick attributes representing an input."""
@@ -102,6 +116,24 @@ class Input:
 
     def __repr__(self):
         return 'Input(%s, %s, %s)' % (self.brick.__class__, self.name, self.ref)
+
+    def getPath(self):
+        """Absolute filesystem path to this Input."""
+        return os.path.join(self.brick._brick_path, 'input', self.name)
+
+    def createSymlink(self, filesystem):
+        """
+        Create the filesystem symlink for this Input.
+        :param filesystem: an fs.FilesystemInterface object to abstract filesystem calls
+        """
+        filesystem.makedirs(os.path.dirname(self.getPath()))
+        if isinstance(self.ref, Input) or isinstance(self.ref, Output):
+            # wiring of input to other bricks, either wiring through inputs or wiring to an output
+            refPath = self.ref.getPath()
+        else:
+            # direct definition of input as a path string
+            refPath = str(self.ref)
+        filesystem.symlink(refPath, self.getPath())
 
 
 class Output:
@@ -117,7 +149,8 @@ class Output:
     def bind(self, ref):
         """Bind this Output to a part Brick's Output."""
         if ref.brick.parent != self.brick:
-            raise BrickConfigError('Output.bind() must be given a part Brick in %s' % brick_ident(self.brick.__class__))
+            raise BrickConfigError('Output.bind() of output "%s" must be given a part Brick in %s' %
+                                   (self.name, brick_ident(self.brick.__class__)))
         self.ref = ref
 
     def __repr__(self):
@@ -125,6 +158,26 @@ class Output:
             return 'Output(%s, %s)' % (self.brick.__class__, self.name)
         else:
             return 'Output(%s, %s, %s)' % (self.brick.__class__, self.name, self.ref)
+
+    def getPath(self):
+        """Absolute filesystem path to this Input."""
+        return os.path.join(self.brick._brick_path, 'output', self.name)
+
+    def createSymlink(self, filesystem):
+        """
+        Create the filesystem symlink for this Output.
+        :param filesystem: an fs.FilesystemInterface object to abstract filesystem calls
+        """
+        filesystem.makedirs(os.path.dirname(self.getPath()))
+        if isinstance(self.ref, Output):
+            # output is bound to other brick's output (part's output)
+            refPath = self.ref.getPath()
+        elif self.ref is None:
+            # output left unbound: file written by the Brick's script body
+            return
+        else:
+            raise BrickConfigError('output "%s" must either be bound to a part\'s output or left unbound.' % self.name)
+        filesystem.symlink(refPath, self.getPath())
 
 
 class BrickConfigError(TypeError):

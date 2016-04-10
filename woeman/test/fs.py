@@ -1,6 +1,7 @@
 import unittest
 from woeman.fs import FilesystemInterface
 from woeman import brick
+import os
 
 
 class MockFilesystem(FilesystemInterface):
@@ -16,7 +17,19 @@ class MockFilesystem(FilesystemInterface):
         self.dirs.add(directory)
 
 
-class BasicTests(unittest.TestCase):
+def normalizeSymlinks(symlinks):
+    """
+    Normalize a dict of symlinks with relative symlink paths to become absolute paths.
+    :param symlinks: dict: symlinks[linkName] = target
+    """
+    def normalize(linkName, target):
+        if target.startswith('/'):
+            return target  # do not change absolute paths
+        return os.path.normpath(os.path.join(os.path.dirname(linkName), target))  # normalize relative paths
+    return {linkName: normalize(linkName, target) for linkName, target in symlinks.items()}
+
+
+class FilesystemTests(unittest.TestCase):
     def testBrickBasePath(self):
         """Test the mapping of Brick parts to filesystem paths."""
         @brick
@@ -39,8 +52,48 @@ class BasicTests(unittest.TestCase):
                 result.bind(self.part.result)
 
         e = Experiment()
-        e.setBasePath('/testpath')
-        self.assertEqual(e._brick_path, '/testpath/Experiment')
-        self.assertEqual(e.part._brick_path, '/testpath/Experiment/part')
-        self.assertEqual(e.parts[0]._brick_path, '/testpath/Experiment/parts_0')
-        self.assertEqual(e.mapped['zero']._brick_path, '/testpath/Experiment/mapped_zero')
+        e.setBasePath('/e')
+        self.assertEqual(e._brick_path, '/e/Experiment')
+        self.assertEqual(e.part._brick_path, '/e/Experiment/part')
+        self.assertEqual(e.parts[0]._brick_path, '/e/Experiment/parts_0')
+        self.assertEqual(e.mapped['zero']._brick_path, '/e/Experiment/mapped_zero')
+
+    def testCreateInOuts(self):
+        """Test creation of input/output directory structures and symlinks for Bricks and their parts."""
+        @brick
+        class Part:
+            def __init__(self, partInput):
+                self.p_ran = True
+
+            def output(self, partResult):
+                pass
+
+        @brick
+        class Experiment:
+            def __init__(self, experimentInput):
+                self.e_ran = True
+                self.part = Part(experimentInput)
+
+            def output(self, experimentResult):
+                experimentResult.bind(self.part.partResult)
+
+        fs = MockFilesystem()
+        e = Experiment('/data/input')
+        e.setBasePath('/e')
+        e.createInOuts(fs)
+
+        dirs = {
+            '/e/Experiment/part/input',
+            '/e/Experiment/input',
+            '/e/Experiment/part/output',
+            '/e/Experiment/output'
+        }
+        self.assertEqual(fs.dirs, dirs)
+
+        symlinks = {
+            '/e/Experiment/input/experimentInput': '/data/input',
+            '/e/Experiment/part/input/partInput': '../../input/experimentInput',
+            '/e/Experiment/output/experimentResult': '../part/output/partResult'
+        }
+        print(fs.symlinks)
+        self.assertEqual(fs.symlinks, normalizeSymlinks(symlinks))
