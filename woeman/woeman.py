@@ -76,7 +76,7 @@ class Brick:
         raise BrickConfigError('Could not determine part name of part %s in %s' % (part.__class__.__name__, brick_ident(self.__class__)))
 
     def setPath(self, path):
-        """Set filesystem path where this Brick will be executed."""
+        """Recursively set filesystem path where this Brick will be executed."""
         # since there may be several parts of the same Brick type, the caller should set the Brick name.
         self._brick_path = path
         for part in self._brick_parts:
@@ -84,8 +84,8 @@ class Brick:
 
     def setBasePath(self, basePath):
         """
-        Set filesystem path above this Brick. Appends brick class name to the given basePath.
-        Use only for top level Brick / Experiment.
+        Recursively set filesystem path above this Brick. Appends brick class name to the given 'basePath'.
+        Use this only for top level Brick / Experiment.
         """
         self.setPath(os.path.join(basePath, self.__class__.__name__))
 
