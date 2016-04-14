@@ -40,7 +40,7 @@ class Brick:
 
     def render(self):
         """Render the Jinja template of this Brick."""
-        env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath=Brick._bricks_v1_path()))
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath=Brick._brick_base_template_dir()))
         template = env.get_template(self.jinjaTemplatePath())
         # should we exclude methods like render, output, configure here?
         context = {k: self.__getattribute__(k) for k in dir(self) if not k.startswith('_')}
@@ -50,22 +50,9 @@ class Brick:
     def jinjaTemplatePath(self):
         """Returns the path to this Brick's Jinja template."""
         packagePath = os.path.dirname(self._brick_sourcefile)
-        # why is self.__class__ in 'woeman/woeman/woeman.py'? Are we getting the wrapper?
-        # anyway, now monkey-patched in the real path to self._brick_sourcefile
-        #print('inspect.getfile() == %s' % inspect.getfile(self.__class__))
-        #print('inspect.getsourcefile() == %s' % inspect.getsourcefile(self.__class__))
-        #print('inspect.getmodule() == %s' % inspect.getmodule(self.__class__))
-        #print('_brick_sourcefile == %s' % self._brick_sourcefile)
         jinjaFile = '%s.jinja.do' % self.__class__.__name__
-        #return os.path.join(packagePath, jinjaFile)
-
-        # Must be relative to searchpath of jinja2.Environment()... Jinja is not happy about an absolute path?!
-        return os.path.join(os.path.relpath(packagePath, Brick._bricks_v1_path()), jinjaFile)
-
-    @classmethod
-    def _bricks_v1_path(cls):
-        """Absolute path to woeman/bricks/v1 directory."""
-        return os.path.join(os.path.dirname(inspect.getsourcefile(cls)), 'bricks', 'v1')
+        # must be relative to searchpath of jinja2.Environment()... Jinja is not happy about an absolute path?!
+        return os.path.join(os.path.relpath(packagePath, Brick._brick_base_template_dir()), jinjaFile)
 
     def setPath(self, path):
         """Recursively set filesystem path where this Brick will be executed."""
@@ -94,6 +81,11 @@ class Brick:
         # recursively create for all parts
         for part in self._brick_parts:
             part.createInOuts(filesystem)
+
+    @classmethod
+    def _brick_base_template_dir(cls):
+        """Absolute path to woeman/bricks/v1 directory. Template directory base for Jinja search path."""
+        return os.path.join(os.path.dirname(inspect.getsourcefile(cls)), 'bricks', 'v1')
 
     def _brick_setup_pre_init(self):
         """
