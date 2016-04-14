@@ -1,5 +1,6 @@
 import inspect
 import collections
+import jinja2
 import os
 
 
@@ -7,9 +8,11 @@ class Brick:
     """Implicit base class for all Bricks, monkey-patched in as a base class by the @brick decorator."""
 
     # these are set from BrickDecorator.patchFields()
-    _brick_init = None     # original __init__() of Brick
-    _brick_inputs = None   # list of input names
-    _brick_outputs = None  # list of output names
+    _brick_init = None       # original __init__() of Brick
+    _brick_inputs = None     # list of input names
+    _brick_outputs = None    # list of output names
+    _brick_ident = None      # str identifying the Brick for debugging, see brick_ident()
+    _brick_sourcefile = None # source file where the Brick was defined
 
     def __init__(self):
         # this runs on instances, i.e. later than BrickDecorator.create() which runs on class definitions
@@ -31,9 +34,38 @@ class Brick:
         pass any arguments).
         """
         if len(args) > 0:
-            raise BrickConfigError('Do not pass args to Brick.configure(), it grabs all local vars in %s' % brick_ident(self.__class__))
+            raise BrickConfigError('Do not pass args to Brick.configure(), it grabs all local vars in %s' % self._brick_ident)
         # call stack: brick.configure() -> woeman.Brick.configure() -> transfer_caller_local_vars()
         transfer_caller_local_vars(self, depth=2)
+
+    def render(self):
+        """Render the Jinja template of this Brick."""
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath=Brick._bricks_v1_path()))
+        template = env.get_template(self.jinjaTemplatePath())
+        # should we exclude methods like render, output, configure here?
+        context = {k: self.__getattribute__(k) for k in dir(self) if not k.startswith('_')}
+        brickDo = template.render(context)
+        return brickDo  # to do: write to disk, if changed
+
+    def jinjaTemplatePath(self):
+        """Returns the path to this Brick's Jinja template."""
+        packagePath = os.path.dirname(self._brick_sourcefile)
+        # why is self.__class__ in 'woeman/woeman/woeman.py'? Are we getting the wrapper?
+        # anyway, now monkey-patched in the real path to self._brick_sourcefile
+        #print('inspect.getfile() == %s' % inspect.getfile(self.__class__))
+        #print('inspect.getsourcefile() == %s' % inspect.getsourcefile(self.__class__))
+        #print('inspect.getmodule() == %s' % inspect.getmodule(self.__class__))
+        #print('_brick_sourcefile == %s' % self._brick_sourcefile)
+        jinjaFile = '%s.jinja.do' % self.__class__.__name__
+        #return os.path.join(packagePath, jinjaFile)
+
+        # Must be relative to searchpath of jinja2.Environment()... Jinja is not happy about an absolute path?!
+        return os.path.join(os.path.relpath(packagePath, Brick._bricks_v1_path()), jinjaFile)
+
+    @classmethod
+    def _bricks_v1_path(cls):
+        """Absolute path to woeman/bricks/v1 directory."""
+        return os.path.join(os.path.dirname(inspect.getsourcefile(cls)), 'bricks', 'v1')
 
     def setPath(self, path):
         """Recursively set filesystem path where this Brick will be executed."""
@@ -112,7 +144,7 @@ class Brick:
                             break
                         if p == part:
                             return '%s_%s' % (attr_name, i)  # e.g. "parts_zero" for self.parts['zero'] = Part()
-        raise BrickConfigError('Could not determine part name of part %s in %s' % (part.__class__.__name__, brick_ident(self.__class__)))
+        raise BrickConfigError('Could not determine part name of part %s in %s' % (part.__class__.__name__, self._brick_ident))
 
 
 class Input:
@@ -161,7 +193,7 @@ class Output:
         """Bind this Output to a part Brick's Output."""
         if ref.brick.parent != self.brick:
             raise BrickConfigError('Output.bind() of output "%s" must be given a part Brick in %s' %
-                                   (self.name, brick_ident(self.brick.__class__)))
+                                   (self.name, self._brick_ident))
         self.ref = ref
 
     def __repr__(self):
@@ -286,9 +318,11 @@ class BrickDecorator:
         exec(init_code, ns)
 
     def patchFields(self):
-        """Monkey-patch Brick class: add some fields: _brick_inputs, _brick_outputs"""
+        """Monkey-patch Brick class: add some fields: _brick_inputs, _brick_outputs, _brick_ident"""
         self.cls._brick_inputs = self.inputs
         self.cls._brick_outputs = self.outputs
+        self.cls._brick_ident = self.brick_ident
+        self.cls._brick_sourcefile = inspect.getsourcefile(self.cls)
 
     def patchClass(self):
         """Append Brick as a base class."""
