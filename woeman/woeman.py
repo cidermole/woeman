@@ -47,8 +47,17 @@ class Brick:
         self.output(*[self.__getattribute__(output_name) for output_name in self._brick_outputs])
 
     def output(self, *args):
-        """Parameters of the override of this method define Brick outputs. This method may bind() outputs to parts."""
+        """Brick outputs defined through parameters of this method. This method may bind() outputs to parts."""
         pass
+
+    def configure(self, *args):
+        """Configuration parameters that are not data inputs, defined through parameters of this method."""
+        pass
+
+    def configureSelf(self):
+        """Call this from configure() in order to automatically set local variables on the object."""
+        # call stack: configure() -> configureSelf() -> transfer_caller_local_vars()
+        transfer_caller_local_vars(self, depth=2)
 
     def _get_part_name(self, part):
         """Find the attribute name that holds a reference to this part. May be contained in a list or dict attribute."""
@@ -291,12 +300,13 @@ class BrickDecorator:
         # (this may not be ideal, especially if people derive Experiment[code] explicitly from Brick...)
         # (also, it is currently difficult to get the super(Experiment, self) style __init__ and other calls right)
 
+
 def brick(cls):
     """Decorator for Brick class definitions."""
     return BrickDecorator(cls).create()
 
 
-def obtain_caller_local_var(key, depth=3):
+def obtain_caller_local_var(key, depth):
     """obtain variable 'key' in the caller's stack frame at 'depth', or None otherwise."""
     frame = inspect.currentframe()
     try:
@@ -306,6 +316,24 @@ def obtain_caller_local_var(key, depth=3):
         return f.f_locals[key] if key in f.f_locals else None
     finally:
         del frame
+
+
+def transfer_caller_local_vars(target, depth):
+    """
+    Copy all local variables in the caller's stack frame at 'depth' to make attributes on the 'target' object.
+    Excludes the 'self' variable.
+    """
+    frame = inspect.currentframe()
+    try:
+        f = frame
+        for i in range(depth):
+            f = f.f_back
+        for key in f.f_locals:
+            if key != 'self':
+                object.__setattr__(target, key, f.f_locals[key])
+    finally:
+        del frame
+
 
 def brick_ident(cls):
     return 'Brick %s in file "%s", line %d' % (cls.__name__, inspect.getsourcefile(cls), inspect.getsourcelines(cls)[1])
