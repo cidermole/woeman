@@ -16,7 +16,7 @@ class ConfigTests(unittest.TestCase):
                 pass
 
             def configure(self, key):
-                Brick.configureSelf(self)
+                Brick.configure(self)
 
         e = Experiment()
         e.configure(key='value')
