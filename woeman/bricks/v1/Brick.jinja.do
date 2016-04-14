@@ -1,5 +1,5 @@
 {#
- # Basic brick.do shell script template, written in Jinja2
+ # Basic Brick.do shell script template, written in Jinja2
  # (see http://jinja.pocoo.org/docs/dev/templates/). This is
  # a Jinja comment that is not output into the generated file.
  #

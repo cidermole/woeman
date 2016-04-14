@@ -1,4 +1,4 @@
-{% extends "brick.jinja.do" %}
+{% extends "Brick.jinja.do" %}
 
 {% block Work %}
 
