@@ -20,32 +20,6 @@ class Brick:
         self._brick_parts = []          # list of parts (children) in definition order
         self._brick_path = None         # filesystem path to Brick directory
 
-    def _brick_setup_pre_init(self):
-        """
-        Find the parent Brick instance (if present) that this Brick instance is attached to, set paths, ...
-        Part of the Brick constructor code that is monkey-patched in. Called prior to the actual Brick constructor.
-        """
-        # obtain variables in the (Brick constructor) caller's frame, to get 'self' which is our parent
-        # call stack: <call_site> -> BrickClass.__init__() -> _brick_setup_before_init() -> obtain_caller_local_var()
-        parent = obtain_caller_local_var('self', depth=3)
-        if parent is not None and isinstance(parent, Brick) \
-                and parent != self:  # this is unwanted in an inheritance scenario when calling the base constructor
-            # Brick is part of another Brick (was defined in a Brick constructor [currently, in any Brick method.])
-            self.parent = parent
-            self.parent._brick_parts.append(self)
-        else:
-            # top-level Brick, i.e. Experiment
-            self.parent = None
-
-    def _brick_setup_post_init(self):
-        """
-        Late setup that needs to access stuff set up in Brick constructor (like parts).
-        """
-        self._bind_outputs()
-
-    def _bind_outputs(self):
-        self.output(*[self.__getattribute__(output_name) for output_name in self._brick_outputs])
-
     def output(self, *args):
         """Brick outputs defined through parameters of this method. This method may bind() outputs to parts."""
         pass
@@ -60,31 +34,6 @@ class Brick:
             raise BrickConfigError('Do not pass args to Brick.configure(), it grabs all local vars in %s' % brick_ident(self.__class__))
         # call stack: brick.configure() -> woeman.Brick.configure() -> transfer_caller_local_vars()
         transfer_caller_local_vars(self, depth=2)
-
-    def _get_part_name(self, part):
-        """Find the attribute name that holds a reference to this part. May be contained in a list or dict attribute."""
-        for attr_name in dir(self):
-            if attr_name.startswith('__') or attr_name == '_brick_parts':
-                continue
-            attr = self.__getattribute__(attr_name)
-            if isinstance(attr, Brick) and attr == part:
-                # straight attribute name match (e.g. "part" for self.part = Part() in __init__())
-                return attr_name
-            elif isinstance(attr, collections.Iterable) and len(attr) > 0:
-                # check list/dict (e.g. self.parts[0] = Part() in __init__())
-                if isinstance(attr, list) and isinstance(attr[0], Brick):
-                    # a list of Bricks, peek inside
-                    for i, p in enumerate(attr):
-                        if p == part:
-                            return '%s_%d' % (attr_name, i)  # e.g. "parts_0"
-                elif isinstance(attr, dict):
-                    # a dict (maybe) containing Bricks, peek inside
-                    for i, p in attr.items():
-                        if not isinstance(p, Brick):  # make sure we have a dict of Bricks
-                            break
-                        if p == part:
-                            return '%s_%s' % (attr_name, i)  # e.g. "parts_zero" for self.parts['zero'] = Part()
-        raise BrickConfigError('Could not determine part name of part %s in %s' % (part.__class__.__name__, brick_ident(self.__class__)))
 
     def setPath(self, path):
         """Recursively set filesystem path where this Brick will be executed."""
@@ -113,6 +62,57 @@ class Brick:
         # recursively create for all parts
         for part in self._brick_parts:
             part.createInOuts(filesystem)
+
+    def _brick_setup_pre_init(self):
+        """
+        Find the parent Brick instance (if present) that this Brick instance is attached to, set paths, ...
+        Part of the Brick constructor code that is monkey-patched in. Called prior to the actual Brick constructor.
+        """
+        # obtain variables in the (Brick constructor) caller's frame, to get 'self' which is our parent
+        # call stack: <call_site> -> BrickClass.__init__() -> _brick_setup_before_init() -> obtain_caller_local_var()
+        parent = obtain_caller_local_var('self', depth=3)
+        if parent is not None and isinstance(parent, Brick) \
+                and parent != self:  # this is unwanted in an inheritance scenario when calling the base constructor
+            # Brick is part of another Brick (was defined in a Brick constructor [currently, in any Brick method.])
+            self.parent = parent
+            self.parent._brick_parts.append(self)
+        else:
+            # top-level Brick, i.e. Experiment
+            self.parent = None
+
+    def _brick_setup_post_init(self):
+        """
+        Late setup that needs to access stuff set up in Brick constructor (like parts).
+        """
+        self._bind_outputs()
+
+    def _bind_outputs(self):
+        self.output(*[self.__getattribute__(output_name) for output_name in self._brick_outputs])
+
+    def _get_part_name(self, part):
+        """Find the attribute name that holds a reference to this part. May be contained in a list or dict attribute."""
+        for attr_name in dir(self):
+            if attr_name.startswith('__') or attr_name == '_brick_parts':
+                continue
+            attr = self.__getattribute__(attr_name)
+            if isinstance(attr, Brick) and attr == part:
+                # straight attribute name match (e.g. "part" for self.part = Part() in __init__())
+                return attr_name
+            elif isinstance(attr, collections.Iterable) and len(attr) > 0:
+                # check list/dict (e.g. self.parts[0] = Part() in __init__())
+                if isinstance(attr, list) and isinstance(attr[0], Brick):
+                    # a list of Bricks, peek inside
+                    for i, p in enumerate(attr):
+                        if p == part:
+                            return '%s_%d' % (attr_name, i)  # e.g. "parts_0"
+                elif isinstance(attr, dict):
+                    # a dict (maybe) containing Bricks, peek inside
+                    for i, p in attr.items():
+                        if not isinstance(p, Brick):  # make sure we have a dict of Bricks
+                            break
+                        if p == part:
+                            return '%s_%s' % (attr_name, i)  # e.g. "parts_zero" for self.parts['zero'] = Part()
+        raise BrickConfigError('Could not determine part name of part %s in %s' % (part.__class__.__name__, brick_ident(self.__class__)))
 
 
 class Input:
