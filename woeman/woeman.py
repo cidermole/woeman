@@ -50,11 +50,14 @@ class Brick:
         """Brick outputs defined through parameters of this method. This method may bind() outputs to parts."""
         pass
 
-    def configure(self):
+    def configure(self, *args):
         """
         Configuration parameters that are not data inputs, defined through parameters in the override of this method.
-        Call explicitly this super method from configure() in order to automatically set local variables on the object.
+        Call this super method from configure() in order to automatically set local variables on the object (do not
+        pass any arguments).
         """
+        if len(args) > 0:
+            raise BrickConfigError('Do not pass args to Brick.configure(), it grabs all local vars in %s' % brick_ident(self.__class__))
         # call stack: brick.configure() -> woeman.Brick.configure() -> transfer_caller_local_vars()
         transfer_caller_local_vars(self, depth=2)
 
