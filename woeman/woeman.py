@@ -1,3 +1,4 @@
+from .util import obtain_caller_local_var, transfer_caller_local_vars
 import inspect
 import collections
 import jinja2
@@ -39,7 +40,7 @@ class Brick:
         transfer_caller_local_vars(self, depth=2)
 
     def render(self):
-        """Render the Jinja template of this Brick."""
+        """Render the Jinja script template of this Brick."""
         env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath=Brick._brick_base_template_dir()))
         template = env.get_template(self.jinjaTemplatePath())
         # should we exclude methods like render, output, configure here?
@@ -47,8 +48,21 @@ class Brick:
         brickDo = template.render(context)
         return brickDo  # to do: write to disk, if changed
 
+    def write(self, filesystem):
+        """
+        Render and write script templates recursively to the filesystem.
+        :param filesystem: an fs.FilesystemInterface object to abstract filesystem calls
+        """
+        filesystem.replaceFileContents(self.brickDoPath(), self.render())
+        for part in self._brick_parts:
+            part.write(filesystem)
+
+    def brickDoPath(self):
+        """Returns the path to this Brick instance's do script, which is the shell script specifying its execution."""
+        return os.path.join(self._brick_path, 'brick.do')
+
     def jinjaTemplatePath(self):
-        """Returns the path to this Brick's Jinja template."""
+        """Returns the path to this Brick's Jinja template, commonly located in the same Python package as the class."""
         packagePath = os.path.dirname(self._brick_sourcefile)
         jinjaFile = '%s.jinja.do' % self.__class__.__name__
         # must be relative to searchpath of jinja2.Environment()... Jinja is not happy about an absolute path?!
@@ -332,35 +346,6 @@ class BrickDecorator:
 def brick(cls):
     """Decorator for Brick class definitions."""
     return BrickDecorator(cls).create()
-
-
-def obtain_caller_local_var(key, depth):
-    """obtain variable 'key' in the caller's stack frame at 'depth', or None otherwise."""
-    frame = inspect.currentframe()
-    try:
-        f = frame
-        for i in range(depth):
-            f = f.f_back
-        return f.f_locals[key] if key in f.f_locals else None
-    finally:
-        del frame
-
-
-def transfer_caller_local_vars(target, depth):
-    """
-    Copy all local variables in the caller's stack frame at 'depth' to make attributes on the 'target' object.
-    Excludes the 'self' variable.
-    """
-    frame = inspect.currentframe()
-    try:
-        f = frame
-        for i in range(depth):
-            f = f.f_back
-        for key in f.f_locals:
-            if key != 'self':
-                object.__setattr__(target, key, f.f_locals[key])
-    finally:
-        del frame
 
 
 def brick_ident(cls):

@@ -1,0 +1,1 @@
+{{ mosesDir }}/bin/moses -f {{ mosesIni }} > output/out

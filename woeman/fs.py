@@ -24,6 +24,13 @@ class FilesystemInterface:
         """
         pass
 
+    def replaceFileContents(self, fileName, newContents):
+        """
+        Only replace fileName with newContents if the contents differ from what the file currently contains.
+        This avoids changing mtime of the file and thus avoids re-running bricks which haven't actually changed.
+        """
+        pass
+
 
 class Filesystem(FilesystemInterface):
     """Actual runtime implementation of FilesystemInterface."""
@@ -34,3 +41,18 @@ class Filesystem(FilesystemInterface):
 
     def makedirs(self, directory):
         os.makedirs(directory)
+
+    def replaceFileContents(self, fileName, newContents):
+        if os.path.exists(fileName):
+            with open(fileName) as fi:
+                oldContents = fi.read()
+            if oldContents == newContents:
+                # no need to update the file
+                return
+
+        # create directory if necessary
+        if not os.path.exists(os.path.dirname(fileName)):
+            os.makedirs(os.path.dirname(fileName))
+
+        with open(fileName, 'w') as fo:
+            fo.write(newContents)
