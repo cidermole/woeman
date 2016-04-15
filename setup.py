@@ -1,7 +1,7 @@
 # TODO: set up a setup.py this way:
 # https://jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/
 
-# TODO: requirements.txt (jinja2)
+# TODO: requirements.txt (jinja2), or setuptools install_requires=?
 # TODO: nosetest
 
 from setuptools import setup
