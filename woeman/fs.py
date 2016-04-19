@@ -43,7 +43,8 @@ class Filesystem(FilesystemInterface):
         os.symlink(target, linkName)
 
     def makedirs(self, directory):
-        os.makedirs(directory)
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
 
     def replaceFileContents(self, fileName, newContents):
         if os.path.exists(fileName):
