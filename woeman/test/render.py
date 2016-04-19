@@ -23,7 +23,7 @@ class RenderTests(unittest.TestCase):
     def testWrite(self):
         """Render and write a Brick's do script."""
 
-        # allows '..' in the path, contrary to jinja2 default implementation
+        # allows '..' in the template path, contrary to jinja2 default implementation
         # (the jinja relative path to Basic.jinja.do is '../../test/Basic.jinja.do')
         jinja2.loaders.split_template_path = unsafe_jinja_split_template_path
 

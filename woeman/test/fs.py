@@ -84,7 +84,7 @@ class FilesystemTests(unittest.TestCase):
     def testAbsoluteInOutNames(self):
         """Test absolute path generation of Inputs and Outputs in Jinja templates."""
 
-        # allows '..' in the path, contrary to jinja2 default implementation
+        # allows '..' in the template path, contrary to jinja2 default implementation
         jinja2.loaders.split_template_path = unsafe_jinja_split_template_path
 
         @brick

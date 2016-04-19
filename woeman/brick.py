@@ -30,13 +30,16 @@ class Brick:
         """Brick outputs defined through parameters of this method. This method may bind() outputs to parts."""
         pass
 
+    # this is annotated @staticmethod to make IDE happy at the call sites (monkey-patched inheritance which IDE is unaware of).
+    @staticmethod
     def configure(self, *args):
         """
         Configuration parameters that are not data inputs, defined through parameters in the override of this method.
-        Call this super method from configure() in order to automatically set local variables on the object (do not
-        pass any arguments).
+        The overrides of configure() should implement a chain of configure() calls into every brick part.
+        This super configure() on Brick sets local variables on the object (do not pass any arguments).
         """
         if len(args) > 0:
+            # TODO: we could also pass in *some* locals, or we could pass in locals() to have a clearer callsite syntax of what is going on
             raise BrickConfigError('Do not pass args to Brick.configure(), it grabs all local vars in %s' % self._brick_ident)
         # call stack: brick.configure() -> woeman.Brick.configure() -> transfer_caller_local_vars()
         transfer_caller_local_vars(self, depth=2)

@@ -14,6 +14,10 @@ class ConfigTests(unittest.TestCase):
                 pass
 
             def configure(self, key):
+                # configure() is a chain of calls into every part. The final step has to set the attributes
+                # on the object itself: this is automated by Brick.configure(self)
+
+                # set params as attributes
                 Brick.configure(self)
 
         e = Experiment()
@@ -31,6 +35,7 @@ class ConfigTests(unittest.TestCase):
                 pass
 
             def configure(self, partKey):
+                # set params as attributes
                 Brick.configure(self)
 
         @brick
@@ -43,6 +48,7 @@ class ConfigTests(unittest.TestCase):
                 result.bind(self.part.result)
 
             def configure(self, key):
+                # configure() is a chain of calls into every part. We do not use 'key' ourselves in Experiment.
                 self.part.configure(partKey=key)
 
         e = Experiment()
