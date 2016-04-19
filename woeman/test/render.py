@@ -14,7 +14,8 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(kenlm.jinjaTemplatePath(), 'lm/KenLM.jinja.do')
 
     def testRenderKenLM(self):
-        """Check whether we can render without exceptions."""
+        """Check whether we can render without exceptions. Also tests Jinja template include path
+         resolution via the '{% extends "Brick.jinja.do" %}' part of the KenLM.jinja.do"""
         kenlm = KenLM(corpus='/data/corpus')
         #kenlm.setBasePath('/e')
         #kenlm.createInOuts(fs)
