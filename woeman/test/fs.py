@@ -1,5 +1,6 @@
 import unittest
-from woeman.fs import MockFilesystem, normalize_symlinks
+import jinja2
+from woeman.fs import MockFilesystem, normalize_symlinks, unsafe_jinja_split_template_path
 from woeman import brick, Input, Output
 
 
@@ -79,3 +80,26 @@ class FilesystemTests(unittest.TestCase):
         }
         print(fs.symlinks)
         self.assertEqual(fs.symlinks, normalize_symlinks(symlinks))
+
+    def testAbsoluteInOutNames(self):
+        """Test absolute path generation of Inputs and Outputs in Jinja templates."""
+
+        # allows '..' in the path, contrary to jinja2 default implementation
+        jinja2.loaders.split_template_path = unsafe_jinja_split_template_path
+
+        @brick
+        class AbsPaths:
+            def __init__(self, input):
+                pass
+
+            def output(self, result):
+                pass
+
+        fs = MockFilesystem()
+        p = AbsPaths('/data/input')
+        p.setBasePath('/e')
+        p.write(fs)
+
+        # original template:             "cat {{ input }} > {{ result }}"
+        files = {'/e/AbsPaths/brick.do': 'cat /e/AbsPaths/input/input > /e/AbsPaths/output/result'}
+        self.assertEqual(fs.files, files)

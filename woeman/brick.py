@@ -166,7 +166,12 @@ class Input:
         self.brick, self.name, self.ref = brick, name, ref
 
     def __repr__(self):
-        return 'Input(%s, %s, %s)' % (self.brick.__class__, self.name, self.ref)
+        """For debugging"""
+        return 'Input(%s, %s, %s)' % (self.brick.__class__.__name__, self.name, self.ref)
+
+    def __str__(self):
+        """For insertion as an absolute path in Jinja templates"""
+        return self.getPath()
 
     def getPath(self):
         """Absolute filesystem path to this Input."""
@@ -205,10 +210,15 @@ class Output:
         self.ref = ref
 
     def __repr__(self):
+        """For debugging"""
         if self.ref is None:
             return 'Output(%s, %s)' % (self.brick.__class__, self.name)
         else:
             return 'Output(%s, %s, %s)' % (self.brick.__class__, self.name, self.ref)
+
+    def __str__(self):
+        """For insertion as an absolute path in Jinja templates"""
+        return self.getPath()
 
     def getPath(self):
         """Absolute filesystem path to this Input."""
