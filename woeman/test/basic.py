@@ -123,6 +123,10 @@ class BasicTests(unittest.TestCase):
         self.assertTrue(e.e_ran)
         self.assertTrue(e.b_ran)
 
+        # test dependencies
+        self.assertEqual(e.result.dependencies(), [])
+
+
     def testBrickInheritanceExplicitBrick(self):
         """Test explicitly specifying the super class Brick, and explicitly calling its __init__."""
         @brick
@@ -152,3 +156,8 @@ class BasicTests(unittest.TestCase):
         e = Experiment()
         self.assertTrue(e.e_ran)
         self.assertTrue(e.part.p_ran)
+
+        # test dependencies
+        self.assertEqual(e.result.dependencies(), [e.part])
+        # note: why is e.part printed as "<woeman.decorator.Part object at 0x7f0494940470>"?
+        # (inheritance hierarchy?)

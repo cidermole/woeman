@@ -62,9 +62,17 @@ class Brick:
         for part in self._brick_parts:
             part.write(filesystem)
 
+    def brickTargetPath(self):
+        """Returns the path to this Brick instance's do target (build system target file)."""
+        return os.path.join(self._brick_path, 'brick')
+
     def brickDoPath(self):
         """Returns the path to this Brick instance's do script, which is the shell script specifying its execution."""
         return os.path.join(self._brick_path, 'brick.do')
+
+    def brickPath(self):
+        """Path to this Brick instance's run directory, containing brick.do, input/ and output/"""
+        return self._brick_path
 
     def jinjaTemplatePath(self):
         """Returns the path to this Brick's Jinja template, commonly located in the same Python package as the class."""
@@ -100,6 +108,32 @@ class Brick:
         # recursively create for all parts
         for part in self._brick_parts:
             part.createInOuts(filesystem)
+
+    def dependencyFiles(self, type):
+        """
+        Returns the list of input or output (part) dependencies (build system target files).
+        Provided to the build system by the Jinja base template 'Brick.jinja.do'.
+        :param type: either 'input' or 'output'
+        """
+        if type == 'input':
+            inout_names = self._brick_inputs
+        elif type == 'output':
+            inout_names = self._brick_outputs
+        else:
+            raise BrickConfigError('Invalid type in dependencyFiles() in %s' % self._brick_ident)
+
+        deps = []
+        for d in self._inout_dependencies(inout_names):
+            deps.append(os.path.relpath(d.brickTargetPath(), self._brick_path))
+        return deps
+
+    def _inout_dependencies(self, inout_names):
+        """Return the list of all Input/Output dependencies depending on
+        whether self._brick_inputs or self._brick_outputs is passed in."""
+        deps = []
+        for inout_name in inout_names:
+            deps += self.__getattribute__(inout_name).dependencies()
+        return deps
 
     @classmethod
     def _brick_base_template_dir(cls):
@@ -186,7 +220,7 @@ class Input:
         :param filesystem: an fs.FilesystemInterface object to abstract filesystem calls
         """
         filesystem.makedirs(os.path.dirname(self.getPath()))
-        if isinstance(self.ref, Input) or isinstance(self.ref, Output):
+        if self._isDependent():
             # wiring of input to other bricks, either wiring through inputs or wiring to an output
             refPath = self.ref.getPath()
         else:
@@ -194,6 +228,16 @@ class Input:
             refPath = str(self.ref)
         filesystem.symlink(refPath, self.getPath())
 
+    def dependencies(self):
+        """Return list of brick objects which this Input depends on."""
+        if self._isDependent():
+            return [self.ref.brick]
+        else:
+            return []
+
+    def _isDependent(self):
+        """Whether this Input is wired to another brick's Input or Output."""
+        return isinstance(self.ref, Input) or isinstance(self.ref, Output)
 
 class Output:
     """For Brick attributes representing an output."""
@@ -233,8 +277,8 @@ class Output:
         :param filesystem: an fs.FilesystemInterface object to abstract filesystem calls
         """
         filesystem.makedirs(os.path.dirname(self.getPath()))
-        if isinstance(self.ref, Output):
-            # output is bound to other brick's output (part's output)
+        if self._isDependent():
+            # output is bound to other brick's Output (part's Output)
             refPath = self.ref.getPath()
         elif self.ref is None:
             # output left unbound: file written by the Brick's script body
@@ -242,6 +286,17 @@ class Output:
         else:
             raise BrickConfigError('output "%s" must either be bound to a part\'s output or left unbound.' % self.name)
         filesystem.symlink(refPath, self.getPath())
+
+    def dependencies(self):
+        """Return list of brick objects which this Output depends on."""
+        if self._isDependent():
+            return [self.ref.brick]
+        else:
+            return []
+
+    def _isDependent(self):
+        """Whether this Output is bound to another brick's Output (part's Output)."""
+        return isinstance(self.ref, Output)
 
 
 class BrickConfigError(TypeError):

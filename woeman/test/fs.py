@@ -81,6 +81,9 @@ class FilesystemTests(unittest.TestCase):
         print(fs.symlinks)
         self.assertEqual(fs.symlinks, normalize_symlinks(symlinks))
 
+        # test dependencies
+        self.assertEqual(e.dependencyFiles('output'), ['part/brick'])
+
     def testAbsoluteInOutNames(self):
         """Test absolute path generation of Inputs and Outputs in Jinja templates."""
 

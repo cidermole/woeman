@@ -9,9 +9,10 @@
  # To set up PyCharm IDE syntax highlighting correctly:
  #
  # * install BashSupport plugin
- # * Configure the Jinja template language
+ # * Configure the Jinja template language under Settings -> 'Languages & Frameworks' -> 'Python Template Languages'
+ #   * add 'Bourne Again Shell' under 'Template file types'
  # * assign *.do to 'Bourne Again Shell' under 'File Types'
- # * mark 'woeman/bricks/v1' as a Template Directory [2]
+ # * mark 'woeman/bricks/v1' as a Template Folder [2]
  # * disable 'Add missing shebang to file' warning for BashSupport under Settings -> 'Editor/Inspections'
  # * disable 'Show popup in the editor' under Settings -> 'Tools/Web Browsers'
  #
@@ -28,10 +29,27 @@
 
 {#- *** End of notice. *** #}
 
-# Instead of outputting each dependency as "redo-ifchange dependency",
-# we collect them onto one "redo-ifchange", to improve parallelism.
+{#
+ # Instead of outputting each dependency as "redo-ifchange dependency",
+ # we collect them onto one "redo-ifchange", to improve parallelism.
+ #}
 
-# TODO: block OverrideDependencies was here.
+{% block Dependencies %}
+# Dependency list generated in Brick.jinja.do
+{%- for dependencyType in ['input', 'output'] %}
+# {{ dependencyType }} dependencies
+(
+{%- for dependency in dependencyFiles(dependencyType) %}
+    echo {{ dependency }}
+{%- endfor -%}
+
+{% if dependencyFiles(dependencyType) | length == 0 %}
+    # no {{ dependencyType }} dependencies
+    true
+{%- endif %}
+) | xargs redo-ifchange
+{% endfor %}
+{% endblock %}
 
 # Redirect stdout and stderr of coming commands to logfiles.
 #exec 6<&1  # backup stdout to fd=6
@@ -54,5 +72,5 @@
 
 {% block Complete %}
     # mark as completed (stdout goes to our target file "brick")
-    {# echo "{{ brick.path }}" #}
-{%- endblock %}
+    echo "{{ brickPath() }}"
+{% endblock %}
