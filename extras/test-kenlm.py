@@ -14,7 +14,8 @@ kenlm = KenLM(corpus='/data/corpus')
 #kenlm.setBasePath(os.path.dirname(os.path.realpath(__file__)))  # points to woeman/extras package
 kenlm.setBasePath(os.path.dirname(os.path.abspath(__file__)))  # finds the symlinked.py folder
 kenlm.createInOuts(fs)
-KenLM.mosesDir = '/home/david/mmt/mmt-src-nosync/mosesdecoder'
+#KenLM.mosesDir = '/home/david/mmt/mmt-src-nosync/mosesdecoder'
+kenlm.loadDefaultConfig()
 kenlm.configure(ngramOrder=5)
 
 # like render(), but write to the FS.

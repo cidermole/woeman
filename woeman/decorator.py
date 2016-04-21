@@ -92,17 +92,20 @@ class BrickDecorator:
         exec(init_code, ns)
 
     def patchFields(self):
-        """Monkey-patch Brick class: add some fields: _brick_inputs, _brick_outputs, _brick_ident"""
-        self.cls._brick_inputs = self.inputs
-        self.cls._brick_outputs = self.outputs
-        self.cls._brick_ident = self.brick_ident
-        self.cls._brick_sourcefile = inspect.getsourcefile(self.cls)
+        """Monkey-patch Brick class: initialize some class attributes of Brick."""
+        cls = self.cls
+        cls._brick_inputs = self.inputs
+        cls._brick_outputs = self.outputs
+        cls._brick_ident = self.brick_ident
+        cls._brick_sourcefile = inspect.getsourcefile(cls)
+        cls._brick_fullname = cls.__module__ + "." + cls.__name__
 
     def patchClass(self):
         """Append Brick as a base class."""
+        cls = self.cls
         # [1:]: exclude 'object' as a base, which should always come first in __bases__
-        bases = tuple([base for base in self.cls.__class__.__bases__[1:] if base != Brick])
-        self.cls = self.cls.__class__(self.cls.__name__, (self.cls,) + bases + (Brick,), {})
+        bases = tuple([base for base in cls.__class__.__bases__[1:] if base != Brick])
+        self.cls = cls.__class__(cls.__name__, (cls,) + bases + (Brick,), {})
 
         # note: class hierarchy:
         # Experiment[wrap] -> (Experiment[code], bases..., Brick)

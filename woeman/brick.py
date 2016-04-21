@@ -5,6 +5,7 @@ import os
 import jinja2
 
 from .util import obtain_caller_local_var, transfer_caller_local_vars
+from brick_config import config
 
 
 class Brick:
@@ -16,6 +17,7 @@ class Brick:
     _brick_outputs = None    # list of output names
     _brick_ident = None      # str identifying the Brick for debugging, see brick_ident()
     _brick_sourcefile = None # source file where the Brick was defined
+    _brick_fullname = None   # fully qualified Brick class name such as 'woeman.bricks.v1.lm.KenLM'
 
     def __init__(self):
         # this runs on instances, i.e. later than BrickDecorator.create() which runs on class definitions
@@ -43,6 +45,28 @@ class Brick:
             raise BrickConfigError('Do not pass args to Brick.configure(), it grabs all local vars in %s' % self._brick_ident)
         # call stack: brick.configure() -> woeman.Brick.configure() -> transfer_caller_local_vars()
         transfer_caller_local_vars(self, depth=2)
+
+    def loadDefaultConfig(self):
+        """Load default configuration into class attributes. Values either come from 'woeman/bricks/v1/woeman.cfg'
+        or can be overridden by the user in '~/.config/woeman/woeman.cfg'."""
+
+        # load from user's config file override if it exists, or fall back to 'woeman.cfg' we ship with woeman
+        userCfg = os.path.join(os.path.expanduser('~'), '.config', 'woeman', 'woeman.cfg')
+        woemanDefaultCfg = os.path.join(Brick._brick_base_template_dir(), 'woeman.cfg')
+        if os.path.exists(userCfg):
+            cfgFileName = userCfg
+        else:
+            cfgFileName = woemanDefaultCfg
+
+        # search path for @<v1/included.cfg> style includes in config files
+        searchPath = os.path.dirname(Brick._brick_base_template_dir())
+
+        configSearchPath = config.ConfigSearchPath([searchPath])
+        cfg = config.Config(open(cfgFileName), searchPath=configSearchPath)
+        cfg = cfg.instantiate()
+
+        # configure ourselves and parts recursively
+        self._load_default_config(cfg)
 
     def render(self):
         """Render the Jinja script template of this Brick."""
@@ -135,9 +159,31 @@ class Brick:
             deps += self.__getattribute__(inout_name).dependencies()
         return deps
 
+    def _load_default_config(self, configRoot):
+        """Load default configuration into class attributes. Config mappings correspond to the Python namespace from v1,
+        so the class attributes of 'bricks.v1.lm.KenLM' can be configured as `lm: { KenLM: { mosesDir: "/dir" } }`"""
+        _brick_fullname = None
+
+        # _brick_fullname 'woeman.bricks.v1.lm.KenLM' -> entryPath 'lm.KenLM'
+        entryPath = '.'.join(self._brick_fullname.split('.')[3:])
+        configEntry = configRoot.getByPath(entryPath)
+
+        # set class attributes available from config keys
+        for attr_name in dir(self.__class__):
+            if attr_name.startswith('_'):
+                # skip builtin names and brick info class attributes
+                continue
+            if attr_name in configEntry:
+                object.__setattr__(self, attr_name, configEntry[attr_name])
+
+        # recursively configure all parts
+        for part in self._brick_parts:
+            part._load_default_config(configRoot)
+
     @classmethod
     def _brick_base_template_dir(cls):
-        """Absolute path to woeman/bricks/v1 directory. Template directory base for Jinja search path."""
+        """Absolute path to 'woeman/bricks/v1' directory.
+        Template directory base for Jinja search path and 'woeman.cfg'."""
         return os.path.join(os.path.dirname(inspect.getsourcefile(cls)), 'bricks', 'v1')
 
     def _brick_setup_pre_init(self):
