@@ -18,7 +18,7 @@ class ConfigTests(unittest.TestCase):
                 # on the object itself: this is automated by Brick.configure(self)
 
                 # set params as attributes
-                Brick.configure(self)
+                Brick.configure(self, locals())
 
         e = Experiment()
         e.configure(key='value')
@@ -36,7 +36,7 @@ class ConfigTests(unittest.TestCase):
 
             def configure(self, partKey):
                 # set params as attributes
-                Brick.configure(self)
+                Brick.configure(self, locals())
 
         @brick
         class Experiment:

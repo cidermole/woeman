@@ -37,4 +37,4 @@ class KenLM:
 
         self.extraOptions = extra_cmd_line
         del extraOptions, extra_cmd_line  # avoid adding these to the object below. Ugly!
-        Brick.configure(self)
+        Brick.configure(self, locals())

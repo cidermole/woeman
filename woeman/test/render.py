@@ -38,7 +38,7 @@ class RenderTests(unittest.TestCase):
                 pass
 
             def configure(self, mosesDir, mosesIni):
-                Brick.configure(self)
+                Brick.configure(self, locals())
 
         fs = MockFilesystem()
         b = Basic()
