@@ -19,22 +19,23 @@ class KenLM:
         """
         pass
 
-    def configure(self, ngramOrder=5, prune="0 0 1", extraOptions=None):
+    def configure(self, ngramOrder=5, prune="0 0 1", otherOptions=None):
         """
         :param ngramOrder:   n-gram order
         :param prune:        "0 0 1" means prune singleton trigrams and above
-        :param extraOptions: additional lmplz options dict (e.g. 'discount_fallback' for small corpora)
+        :param otherOptions: additional lmplz options dict (e.g. 'discount_fallback' for small corpora)
         """
-        if extraOptions is None:
-            extraOptions = {}
+        if otherOptions is None:
+            otherOptions = {}
 
-        extra_cmd_line = ''
-        for key in extraOptions:
+        extraOptions = ''
+        for key in otherOptions:
             if key == 'discount_fallback':
-                extra_cmd_line += ' --discount_fallback'
+                extraOptions += ' --discount_fallback'
             else:
                 raise ValueError('KenLM: unsupported extraOptions key "%s"' % key)
 
-        self.extraOptions = extra_cmd_line
-        del extraOptions, extra_cmd_line  # avoid adding these to the object below. Ugly!
+        self.extraOptions = extraOptions
+        del otherOptions  # avoid adding these to the object below.
+        # (note: the local extraOptions will also redundantly be copied to self.extraOptions again)
         Brick.configure(self, locals())
