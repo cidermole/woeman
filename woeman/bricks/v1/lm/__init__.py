@@ -2,7 +2,7 @@ from woeman import brick, Brick
 
 
 @brick
-class KenLM:
+class KenLM(Brick):
     """KenLM language model estimator"""
 
     mosesDir = None  #: path to bin/lmplz
@@ -11,7 +11,7 @@ class KenLM:
         """
         :param corpus: tokenized training corpus
         """
-        pass
+        Brick.__init__(self)
 
     def output(self, languageModel):
         """
