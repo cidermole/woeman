@@ -166,13 +166,21 @@ class Brick:
         so the class attributes of 'bricks.v1.lm.KenLM' can be configured as `lm: { KenLM: { mosesDir: "/dir" } }`"""
         _brick_fullname = None
 
-        # _brick_fullname 'woeman.bricks.v1.lm.KenLM' -> entryPath 'lm.KenLM'
-        entryPath = '.'.join(self.__class__._brick_fullname.split('.')[3:])
-        try:
-            configEntry = configRoot.getByPath(entryPath)
-        except config.ConfigError as e:
-            traceback.print_exc()
-            raise BrickConfigError('Could not get config key "%s" for loading default config for class attributes in %s' % (entryPath, self._brick_ident))
+        # find config map for the current Brick, or walk the parent classes to find one which has a config map
+        cls = self.__class__
+        while True:
+            # _brick_fullname 'woeman.bricks.v1.lm.KenLM' -> entryPath 'lm.KenLM'
+            entryPath = '.'.join(cls._brick_fullname.split('.')[3:])
+            try:
+                configEntry = configRoot.getByPath(entryPath)
+                break
+            except config.ConfigError as e:
+                # key not found, check if there are parents
+                possible_brick_parent = len(self.__class__.__bases__) > 0 and len(self.__class__.__bases__[0].__bases__) > 0
+                cls = self.__class__.__bases__[0].__bases__[0] if possible_brick_parent else None
+
+                if cls is None or not '_brick_fullname' in dir(cls):
+                    raise BrickConfigError('Could not get config key "%s" for loading default config for class attributes in %s' % (entryPath, self._brick_ident))
 
         # set class attributes available from config keys
         for attr_name in dir(self.__class__):
