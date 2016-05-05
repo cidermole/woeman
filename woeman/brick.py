@@ -1,5 +1,6 @@
 import collections
 import inspect
+import traceback
 import os
 
 import jinja2
@@ -96,10 +97,13 @@ class Brick:
         """Path to this Brick instance's run directory, containing brick.do, input/ and output/"""
         return self._brick_path
 
-    def jinjaTemplatePath(self):
+    @classmethod
+    def jinjaTemplatePath(cls, subclass=None):
         """Returns the path to this Brick's Jinja template, commonly located in the same Python package as the class."""
-        packagePath = os.path.dirname(self._brick_sourcefile)
-        jinjaFile = '%s.jinja.do' % self.__class__.__name__
+        if subclass is None:
+            subclass = cls
+        packagePath = os.path.dirname(subclass._brick_sourcefile)
+        jinjaFile = '%s.jinja.do' % subclass.__name__
         # must be relative to searchpath of jinja2.Environment()... Jinja is not happy about an absolute path?!
         return os.path.join(os.path.relpath(packagePath, Brick._brick_base_template_dir()), jinjaFile)
 
@@ -163,8 +167,12 @@ class Brick:
         _brick_fullname = None
 
         # _brick_fullname 'woeman.bricks.v1.lm.KenLM' -> entryPath 'lm.KenLM'
-        entryPath = '.'.join(self._brick_fullname.split('.')[3:])
-        configEntry = configRoot.getByPath(entryPath)
+        entryPath = '.'.join(self.__class__._brick_fullname.split('.')[3:])
+        try:
+            configEntry = configRoot.getByPath(entryPath)
+        except config.ConfigError as e:
+            traceback.print_exc()
+            raise BrickConfigError('Could not get config key "%s" for loading default config for class attributes in %s' % (entryPath, self._brick_ident))
 
         # set class attributes available from config keys
         for attr_name in dir(self.__class__):
