@@ -151,7 +151,7 @@ class Brick:
         deps = []
         for d in self._inout_dependencies(inout_names):
             deps.append(os.path.relpath(d.brickTargetPath(), self._brick_path))
-        return deps
+        return sorted(list(set(deps)))  # make the files unique (several children/outputs may depend on the same bricks)
 
     def _inout_dependencies(self, inout_names):
         """Return the list of all Input/Output dependencies depending on
