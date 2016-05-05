@@ -13,8 +13,8 @@
     GIZA_CORPUS=$(pwd)/corpus/crp
 
     # ensure that corpus file names are suffixed properly for train-model.perl
-    ln -sf ../input/src ${GIZA_CORPUS}.{{ sourceLang }}
-    ln -sf ../input/trg ${GIZA_CORPUS}.{{ targetLang }}
+    ln -sf ../input/side1 ${GIZA_CORPUS}.{{ sourceLang }}
+    ln -sf ../input/side2 ${GIZA_CORPUS}.{{ targetLang }}
 
 {% endblock %}
 

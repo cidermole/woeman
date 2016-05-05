@@ -291,7 +291,9 @@ class Input:
 
     def dependencies(self):
         """Return list of brick objects which this Input depends on."""
-        if self._isDependent():
+        # do not add our own parents as input dependency, since that will not be resolvable to a DAG
+        our_parent = self._isDependent() and self.brick in self.ref.brick._brick_parts
+        if self._isDependent() and not our_parent:
             return [self.ref.brick]
         else:
             return []

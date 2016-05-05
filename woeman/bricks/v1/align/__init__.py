@@ -14,8 +14,8 @@ class Giza(Brick):
         """
         Brick.__init__(self)
         self.gizaPrepare = GizaPrepare(src, trg)
-        self.giza12 = GizaAlign(src, trg)
-        self.giza21 = GizaAlign(trg, src)
+        self.giza12 = GizaDirection(src, trg, self.gizaPrepare.preparedCorpusDir)
+        self.giza21 = GizaDirection(trg, src, self.gizaPrepare.preparedCorpusDir)
         self.gizaSymmetrize = GizaSymmetrize(self.giza12.alignment, self.giza21.alignment, self.giza12.gizaDir, self.giza21.gizaDir)
 
     def output(self, alignment):
@@ -37,7 +37,7 @@ class Giza(Brick):
         self.gizaPrepare.configure(sourceLang, targetLang)
         self.giza12.configure(sourceLang, targetLang, direction=2, finalAlignmentModel=finalAlignmentModel)
         self.giza21.configure(sourceLang, targetLang, direction=1, finalAlignmentModel=finalAlignmentModel)
-        self.gizaSymmetrize.configure(sourceLang, targetLang)
+        self.gizaSymmetrize.configure(sourceLang, targetLang, symmetrizationHeuristic, finalAlignmentModel)
         Brick.configure(self, locals())
 
 
@@ -55,7 +55,6 @@ class GizaAlign(Brick):
 
     def __init__(self, side1, side2):
         Brick.__init__(self)
-        pass
 
     def output(self, alignment, gizaDir):
         pass
@@ -77,6 +76,11 @@ class GizaPrepare(GizaAlign):
     GIZA++ internals.
     common preparation steps for both directions (including mkcls)
     """
+    def __init__(self, side1, side2):
+        # TODO: check that there is always a constructor defined.
+        # (inheritance is broken - generates redo dependency on own brick, for some reason)
+        Brick.__init__(self)
+
     # noinspection PyMethodOverriding
     def configure(self, sourceLang, targetLang):
         Brick.configure(self, locals())
@@ -84,6 +88,16 @@ class GizaPrepare(GizaAlign):
     # noinspection PyMethodOverriding
     def output(self, preparedCorpusDir):
         pass
+
+
+@brick
+class GizaDirection(GizaAlign):
+    """
+    GIZA++ internals.
+    One alignment direction GIZA run (either forward or reverse).
+    """
+    def __init__(self, side1, side2, preparedCorpusDir):
+        Brick.__init__(self)
 
 
 @brick
@@ -97,5 +111,5 @@ class GizaSymmetrize(GizaAlign):
         pass
 
     # noinspection PyMethodOverriding
-    def configure(self, sourceLang, targetLang):
+    def configure(self, sourceLang, targetLang, symmetrizationHeuristic='grow-diag-final-and', finalAlignmentModel='DEFAULT'):
         Brick.configure(self, locals())
