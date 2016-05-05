@@ -69,6 +69,7 @@ class Brick:
 
     def render(self):
         """Render the Jinja script template of this Brick."""
+        # TODO: check if all our parts have been configure()'d - except ones not having any config.
         env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath=Brick._brick_base_template_dir()))
         template = env.get_template(self.jinjaTemplatePath())
         # should we exclude methods like render, output, configure here?

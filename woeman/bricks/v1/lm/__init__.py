@@ -5,7 +5,7 @@ from woeman import brick, Brick
 class KenLM(Brick):
     """KenLM language model estimator"""
 
-    mosesDir = None  #: path to bin/lmplz
+    mosesDir = None  #: path containing bin/lmplz
 
     def __init__(self, corpus):
         """
