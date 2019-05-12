@@ -1,6 +1,8 @@
 # Workflow and Experiment Manager
 
-Models a scientific workflow, where multiple tools need to be run in a chain, each tool using some (large, computationally expensive) intermediate result files output from previous tools. Such tools usually feature obscure invocation flags, require specific filenaming patterns, and generate temp files in the working directory. Woeman's goal is to tame this mess and enable the tools to work together.
+Models a scientific workflow, where multiple tools need to be run in a chain, each tool using some (large, computationally expensive) intermediate result files output from previous tools.
+
+Such tools usually feature obscure invocation flags, require specific filenaming patterns, and generate temp files in the working directory. Woeman's goal is to tame this mess and enable the tools to work together.
 
 Woeman follows a few design goals:
 
