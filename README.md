@@ -35,3 +35,37 @@ See `brick.py` and `Brick.jinja.do`.
 ## Example tree
 
 See https://github.com/cidermole/bricks/blob/master/bricks.py
+
+      # Brick script execution
+      # ----------------------
+      # Happens via 'redo', each script is run in its Brick working directory.
+      # 'bricks.py' sets up a hierarchy of working directories for Bricks,
+      # with symlinks of inputs (and outputs for Bricks containing parts.)
+      #
+      # number of run (always 0 currently, incremental experiments not implemented)
+      # |
+      # v   name of Brick (outermost Brick is always called Experiment)
+      # 0/  v
+      #     Experiment/
+      #         input/rawCorpusSource -> /data/raw.corpus.en
+      #         input/rawCorpusTarget -> /data/raw.corpus.it
+      #         output/alignment -> WordAligner0/output/alignment
+      #
+      #         PrepSrc/
+      #             input/raw -> ../../input/rawCorpusSource
+      #             output/truecased            < not actually created by bricks.py
+      #             <...>
+      #
+      #         PrepTrg/
+      #             input/raw -> ../../input/rawCorpusTarget
+      #             output/truecased            < not actually created by bricks.py
+      #             <...>
+      #
+      #         WordAligner0/
+      #             # links dangle (target doesn't exist) until actual run of Prep*
+      #             input/src -> ../../PrepSrc/output/truecased
+      #             input/trg -> ../../PrepTrg/output/truecased
+      #
+      #             Giza12/
+      #                 input/crp1 -> ../../input/src
+      #                 <...>
